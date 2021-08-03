@@ -15,8 +15,10 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
     @constructor
   */
   function PersonalityQuiz(params, id) {
-    var self = this;
+    //console.log(params);
+    //console.log(id);
 
+    var self = this;
     self.classPrefix = 'h5p-personality-quiz-';
     self.resultAnimation = params.resultScreen.animation;
     self.resultTitle = params.resultScreen.displayTitle;
@@ -516,11 +518,27 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
         'type': 'button'
       });
 
+      var $button1    = createButton('button', {
+        'html': "Submit Results",
+        'class': classes('button', 'submit-result'),
+        'type': 'button'
+      });
+
       addButtonListener($button, function () {
         quiz.trigger('personality-quiz-restart');
       });
+      addButtonListener($button1, function () {
+        if(typeof self.parent =='undefined'){
+          self.triggerXAPIScored(0, 1, 'submitted-curriki');
+        
+          H5P.jQuery('.h5p-personality-quiz-button').hide();
+          var $submit_message= "<h1>Result has been submitted successfully</h1>";
+          $container.append($submit_message);  
+        }
+      });
 
       $container.append($button);
+      $container.append($button1);
 
       quiz.$resultWrapper = $wrapper;
 
@@ -973,7 +991,13 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
 
       $target = $(event.target);
       $button = $target;
-
+      console.log(event);
+      console.log($target);
+      console.log(this);
+      console.log(this.innerText);
+      console.log(event.target.innerText);
+      //console.log(personality);
+      console.log(self.personalities);
       isImage = $target.hasClass(prefix('image-answer-image'));
       isButton = $target.hasClass(prefix('image-answer-button'));
 
@@ -988,7 +1012,75 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
         buttonListener  = animation ? animatedButtonListener : nonAnimatedButtonListener;
 
         buttonListener($button, personalities);
+        
+       
+         /*******Start Code for interacted statement******/
+        
 
+      var completedEvent = self.createXAPIEventTemplate('interacted');
+      //console.log(completedEvent);
+      //var answer_scope = this.innerText;
+      var answer_scope = event.target.innerText;
+      var return_questions = [];
+      var response_code = "0";
+        sample_question = params.questions[self.answered];
+        var pppp = 0;
+        console.log(sample_question.answers);
+        sample_question.answers.forEach(function (sample_answer) {
+          //console.log(sample_answer);
+          var sub_return_questions = {};
+          sub_return_questions.id = String(pppp);
+          sub_return_questions.description = { 'en-US': sample_answer.text};
+          return_questions.push(sub_return_questions);
+          console.log(answer_scope);
+          console.log( sample_answer.text);
+          if(sample_answer.text === answer_scope) {
+            console.log('1011');
+             response_code = pppp;
+          }
+          
+          pppp++;
+        });
+        
+        console.log(self);
+        console.log(params);
+        Object.assign(completedEvent.data.statement, {
+          result: {
+            response: String(response_code)
+          }
+        });
+        var unique_guid = broofa();
+        /*Object.assign(completedEvent.data.statement.object, {
+          id:"https://dev.currikistudio.org/h5p/embed/"+self.contentId+"?subContentId="+unique_guid
+        });
+
+        console.log(broofa());
+        Object.assign(completedEvent.data.statement.object.definition.extensions, {
+          "http://h5p.org/x-api/h5p-subContentId":unique_guid
+        });*/
+        
+      
+      Object.assign(completedEvent.data.statement.object.definition, {
+        interactionType:"choice"
+      });
+      
+      
+      Object.assign(completedEvent.data.statement.object.definition, {
+        choices:return_questions
+      });
+    
+      
+      Object.assign(completedEvent.data.statement.object.definition,{
+        description: {
+          'en-US':params.questions[self.answered].text,
+        },
+        type: 'http://adlnet.gov/expapi/activities/cmi.interaction'
+      })
+      self.trigger(completedEvent);
+      //self.triggerXAPI('interacted');
+      //this.triggerXAPI('interacted');
+
+      /*******End code for iteracted statement*********/
         $target.parent(prefix('answers')).off('click');
       }
     };
@@ -1018,7 +1110,7 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
     */
     self.on('personality-quiz-answer', function (event) {
       var answers;
-
+      
       if (event !== undefined && event.data !== undefined) {
         answers = event.data.split(', ');
 
@@ -1027,12 +1119,14 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
             if (personality.name === answer) {
               personality.count++;
             }
+           
           });
         });
 
         self.answered += 1;
       }
-
+      //self.triggerXAPI('interacted');
+      
       self.next();
     });
 
@@ -1042,6 +1136,7 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
       as completed, calculates the personality and sets the result.
     */
     self.on('personality-quiz-completed', function () {
+      console.log('personality-quiz-completed');
       var personality = self.calculatePersonality();
 
       self.$progressbar.hide();
@@ -1052,7 +1147,84 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
       if (animation && self.resultAnimation === 'fade-in') {
         self.$result.addClass(prefix('fade-in'));
       }
+
+
+      /*******Start Code for interacted statement******/
+      console.log(self.personalities);
+      var final_answer = self.calculatePersonality();
+
+    var completedEvent = self.createXAPIEventTemplate('interacted');
+    
+    
+    var return_personalitites = [];
+   
+      console.log(self.$slides);
+      console.log(self.$slides[0]);
+      console.log(self.$slides[0].innerText);
+      
+      var nnnn = 0;
+      var final_index_response = "0";
+      self.personalities.forEach(function (sample_personality) {
+        
+        
+        var sub_return_personality = {};
+        sub_return_personality.id = String(nnnn);
+        var person_str = sample_personality.name+"; "+sample_personality.description;
+        sub_return_personality.description = { 'en-US': person_str};
+        return_personalitites.push(sub_return_personality);
+        if(final_answer.name === sample_personality.name) {
+           final_index_response = nnnn;
+        }
+        nnnn++;
+      });
+      
+      Object.assign(completedEvent.data.statement, {
+        result: {
+          response: String(final_index_response)
+        }
+      });
+
+      Object.assign(completedEvent.data.statement.object.definition, {
+        name:{
+          'en-US':"Personality"
+        }
+      });
+
+      Object.assign(completedEvent.data.statement.object.definition, {
+        name:{
+          'en-US':self.$slides[0].innerText.replace('Start','')
+        }
+      });
+
+    
+    Object.assign(completedEvent.data.statement.object.definition, {
+      interactionType:"choice"
     });
+    
+    
+    Object.assign(completedEvent.data.statement.object.definition, {
+      choices:return_personalitites
+    });
+  
+    
+    Object.assign(completedEvent.data.statement.object.definition,{
+      description: {
+        'en-US':self.$slides[0].innerText.replace('Start','')
+      },
+      type: 'http://adlnet.gov/expapi/activities/cmi.interaction'
+    })
+    self.trigger(completedEvent);
+    
+
+    /*******End code for iteracted statement*********/
+    });
+
+    function broofa() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+          return v.toString(16);
+      });
+  }
 
     /**
       Event handler for the animation end event for the wheel of
@@ -1062,6 +1234,8 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
     self.on('wheel-animation-end', function () {
       setTimeout(function () {
         self.$canvas.addClass(prefix('fade-out'));
+        console.log(self.calculatePersonality());
+        
       }, 500);
 
       self.$canvas.on('animationend', self.next);
