@@ -517,25 +517,27 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
         'class': classes('button', 'retake-button'),
         'type': 'button'
       });
-
-      var $button1    = createButton('button', {
-        'html': "Submit Results",
-        'class': classes('button', 'submit-result'),
-        'type': 'button'
-      });
+      if(typeof self.parent =='undefined'){
+        var $button1    = createButton('button', {
+          'html': "Submit Results",
+          'class': classes('button', 'submit-result'),
+          'type': 'button'
+        });
+        addButtonListener($button1, function () {
+         
+            self.triggerXAPIScored(0, 1, 'submitted-curriki');
+          
+            H5P.jQuery('.h5p-personality-quiz-button').hide();
+            var $submit_message= "<h1>Result has been submitted successfully</h1>";
+            $container.append($submit_message);  
+         
+        });
+    }
 
       addButtonListener($button, function () {
         quiz.trigger('personality-quiz-restart');
       });
-      addButtonListener($button1, function () {
-        if(typeof self.parent =='undefined'){
-          self.triggerXAPIScored(0, 1, 'submitted-curriki');
-        
-          H5P.jQuery('.h5p-personality-quiz-button').hide();
-          var $submit_message= "<h1>Result has been submitted successfully</h1>";
-          $container.append($submit_message);  
-        }
-      });
+      
 
       $container.append($button);
       $container.append($button1);
