@@ -1189,8 +1189,7 @@ H5P.PersonalityQuiz = (function ($, EventDispatcher) {
 
       Object.assign(completedEvent.data.statement, {
         result: {
-          response: String(final_index_response),
-          duration: 'PT' + duration + 'S'
+          response: String(final_index_response)
         }
       });
 
